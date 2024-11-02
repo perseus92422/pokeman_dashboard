@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pokémon Card Analytics</title>
+    <link rel="icon" href="https://upload.wikimedia.org/wikipedia/commons/9/98/International_Pokémon_logo.svg" type="image/svg+xml">
+
+    <!-- DataTable CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/2.1.7/css/dataTables.dataTables.css">
+
+    <!-- Select2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+    <!-- jQuery and DataTables JavaScript -->
+    <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
+    <script src="https://cdn.datatables.net/2.1.7/js/dataTables.js"></script>
+
+    <!-- Select2 JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+    <!-- Chart.js for the chart -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/0.6.6/chartjs-plugin-zoom.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(to right, #6EC6FF, #FFCB05);
+            margin: 0;
+            padding: 0;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            background-color: #FFCB05;
+        }
+
+        .header img {
+            width: 200px;
+        }
+
+        h1, h2 {
+            text-align: center;
+            color: #003A70;
+        }
+
+        label {
+            font-size: 14px;
+            color: #003A70;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+
+        select, .dataTables_wrapper {
+            width: 100%;
+        }
+
+        #items-table {
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        table.dataTable thead th {
+            background-color: #003A70;
+            color: white;
+            font-size: 14px;
+        }
+
+        table.dataTable tbody td {
+            font-size: 12px;
+            color: #003A70;
+        }
+
+        .chart-container {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        canvas {
+            max-width: 100%;
+        }
+
+        #cardSelect {
+            margin-bottom: 20px;
+            font-size: 14px;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #003A70;
+        }
+
+        .select2-container .select2-selection--single {
+            height: 38px;
+            font-size: 14px;
+            border: 1px solid #003A70;
+        }
+
+        .select2-selection__rendered {
+            padding-left: 8px;
+            line-height: 36px;
+        }
+
+        .select2-selection__arrow {
+            height: 36px;
+        }
+
+        .dt-length {
+            display: none!important;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            body {
+                font-size: 12px;
+            }
+
+            h1, h2 {
+                font-size: 16px;
+            }
+
+            .container {
+                padding: 10px;
+            }
+
+            #cardSelect {
+                font-size: 12px;
+            }
+
+            .select2-container .select2-selection--single {
+                height: 34px;
+                font-size: 12px;
+            }
+        }
+        .overview {
+            margin-top: 20px;
+            margin-bottom: 20px;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            color: #003A70;
+            font-family: 'Arial', sans-serif;
+        }
+
+        .overview h2 {
+            color: #003A70;
+            font-size: 18px;
+            border-bottom: 2px solid #FFCB05;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        .overview p {
+            font-size: 14px;
+            margin: 5px 0;
+            line-height: 1.6;
+        }
+
+        .overview p span {
+            font-weight: bold;
+            color: #FFCB05;
+        }
+
+        .overview .stat-block {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .overview .stat-block:last-child {
+            border-bottom: none;
+        }
+        
+        .header-container {
+            display: flex;
+            justify-content: center; /* Center the content */
+            align-items: center;
+            position: relative; /* Needed for absolute positioning of the button */
+        }
+
+        .product-title {
+            flex-grow: 1; /* Allow the title to take available space */
+            text-align: center; /* Center the text */
+        }
+
+        .back-button {
+            position: absolute; /* Position the button absolutely */
+            right: 20px; /* Space from the right */
+            background-color: #003A70; /* Dark blue color */
+            color: white; /* Text color */
+            border: none;
+            padding: 10px 15px; /* Padding for the button */
+            border-radius: 5px; /* Rounded corners */
+            text-decoration: none; /* Remove underline from link */
+            font-size: 14px; /* Font size */
+            transition: background-color 0.3s; /* Smooth transition */
+        }
+
+        .back-button:hover {
+            background-color: #005bb5; /* Lighter blue on hover */
+        }
+
+
+    </style>
+</head>
+<body>
+    <header class="header">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/9/98/International_Pokémon_logo.svg" alt="Pokémon Logo">
+    </header>
+
+    <div class="container">
+        <div class="header-container">
+            <h1 class="product-title">{{ product.title }}</h1>
+            <a href="/" class="back-button">Back</a>
+        </div>
+        
+
+        <!-- Select box for cards (now with Select2 functionality) -->
+        
+        <div class="overview">
+            <h2>Overview</h2>
+            <div class="stat-block">
+                <p>Total Quantity:</p>
+                <p><span>{{ product.totalQuantitySold }}</span></p>
+            </div>
+            <div class="stat-block">
+                <p>Total Transaction Count</p>
+                <p><span>{{ product.totalTransactionCount }}</span></p>
+            </div>
+            <div class="stat-block">
+                <p>Average Daily Quantity Sold:</p>
+                <p><span>{{ product.averageDailyQuantitySold }}</span></p>
+            </div>
+            <div class="stat-block">
+                <p>Average Daily Transaction Count:</p>
+                <p><span>{{ product.averageDailyTransactionCount }}</span></p>
+            </div>
+        </div>
+        <!-- DataTable for showing the items -->
+        <table id="items-table" class="display" style="width:100%">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Condition</th>
+                    <th>Qty</th>
+                    <th>Price</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+
+        <!-- Canvas element for Chart.js -->
+        <h2>Price Chart</h2>
+        <div class="chart-container">
+            <canvas id="myChart"></canvas>
+        </div>
+        <h2>Quantity Chart</h2>
+        <div class="chart-container">
+            <canvas id="qtyChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        
+    var ctx = document.getElementById('myChart').getContext('2d');
+    var myChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [], // Dates go here
+            datasets: [{
+                label: 'Price',
+                data: [], // Prices go here
+                borderColor: 'rgba(75, 192, 192, 1)',
+                fill: false
+            }]
+        },
+        options: {
+            scales: {
+                xAxes: [{
+                    type: 'time',
+                }],
+            },
+            pan: {
+                enabled: true,
+                mode: 'x',
+            },
+            zoom: {
+                enabled: true,
+                mode: 'x',
+            }
+        }
+    });
+
+    var ctxQty = document.getElementById('qtyChart').getContext('2d');
+    var qtyChart = new Chart(ctxQty, {
+        type: 'line',
+        data: {
+            labels: [], // Dates go here
+            datasets: [
+                {
+                    label: 'Total Units Sold',
+                    data: [], // qty go here
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    fill: false
+                },
+                {
+                    label: 'Total Orders',
+                    data: [], // tx go here
+                    borderColor: 'rgba(255, 85, 85, 1)',
+                    fill: false
+                },
+                {
+                    label: '# of Sellers',
+                    data: [], // tx go here
+                    borderColor: 'rgba(25, 255, 25, 0.5)',
+                    fill: false
+                }
+            ]
+        },
+        options: {
+            scales: {
+                xAxes: [{
+                    type: 'time',
+                }],
+            },
+            pan: {
+                enabled: true,
+                mode: 'x',
+            },
+            zoom: {
+                enabled: true,
+                mode: 'x',
+            }
+        }
+    });
+
+    // function fetchData(cardName, period) {
+    //     var url = "http://127.0.0.1:5000/api/items";
+    //     if (cardName) {
+    //         url += "?card=" + cardName;
+    //     }
+    //     if (period) {
+    //         url += (cardName ? '&' : '?') + "period=" + period;
+    //     }
+
+    //     return $.ajax({
+    //         url: url,
+    //         dataType: "json"
+    //     });
+    // }
+
+    function updateChart(data) {
+        console.log(data)
+        var prices = data.map(item => item.purchasePrice);
+        var qtys = data.map(item => item.quantity);
+        var transactions = data.map(item => item.count);
+        var listings = data.map(item => item.listings);
+        var dates = data.map(item => new Date(item.orderDate));
+
+        myChart.data.labels = dates;
+        myChart.data.datasets[0].data = prices;
+
+        myChart.update();
+
+        qtyChart.data.labels = dates;
+        qtyChart.data.datasets[0].data = qtys;
+        qtyChart.data.datasets[1].data = transactions;
+        qtyChart.data.datasets[2].data = listings;
+
+        qtyChart.update();
+
+    }
+
+    const queryString = window.location.search;
+
+    // Create a URLSearchParams object from the query string
+    const urlParams = new URLSearchParams(queryString);
+
+    // Get the 'product' and 'skuId' parameters from the URL
+    const product = urlParams.get('product');
+    const skuId = urlParams.get('skuId');
+
+    var dataTable = $('#items-table').DataTable({
+        paging: true,
+        ajax: function (data, callback, settings) {
+            // Calculate the page number from start and length
+            const page = (data.start / data.length) + 1; // DataTables starts at 0, page starts at 1
+            const pageSize = data.length;  // Number of records per page
+
+            // Send the pagination data to the backend via AJAX
+            $.ajax({
+                url: `http://127.0.0.1:5000/api/getSalesData`,
+                method: 'GET',
+                data: {
+                    productId: product,     // Example additional data
+                    skuId: skuId            // Example additional data
+                },
+                success: function (response) {
+                    callback({
+                        data : response.tableData,
+                    })
+                    updateChart(response.chartData);
+                },
+                error: function (xhr, status, error) {
+                    console.error("Error fetching data:", error);
+                }
+            });
+        },
+        columns: [
+            { data: "orderDate",
+            "render": function (data, type, row, meta) {
+                    return data['$date']
+                }
+             },
+            { data: "condition" },
+            { data: "quantity" },
+            { data: "purchasePrice" }
+        ],
+        ordering: true,  // Enable column ordering
+        searching: false  // Disable searching if not needed
+    });
+    // server side processing
+    // var dataTable = $('#items-table').DataTable({
+    //     processing: true,
+    //     serverSide: true,
+    //     paging: true,
+    //     pageLength: 24,  // Number of records per page
+    //     lengthCahnge : false,
+    //     ajax: function (data, callback, settings) {
+    //         // Calculate the page number from start and length
+    //         const page = (data.start / data.length) + 1; // DataTables starts at 0, page starts at 1
+    //         const pageSize = data.length;  // Number of records per page
+
+    //         // Send the pagination data to the backend via AJAX
+    //         $.ajax({
+    //             url: `http://127.0.0.1:5000/api/getSalesData`,
+    //             method: 'GET',
+    //             data: {
+    //                 page: page,             // Sending page number
+    //                 pageSize: pageSize,     // Sending number of records per page
+    //                 productId: product,     // Example additional data
+    //                 skuId: skuId            // Example additional data
+    //             },
+    //             success: function (response) {
+    //                 // Process the response to format it for DataTables
+    //                 callback({
+    //                     draw: data.draw,                   // Pass draw counter from DataTables
+    //                     recordsTotal: response.recordsTotal,  // Total records
+    //                     recordsFiltered: response.recordsTotal,  // Total after filtering (if applicable)
+    //                     data: response.tableData           // The actual data to display
+    //                 });
+
+    //                 // Optionally, update charts or other elements
+    //                 updateChart(response.chartData);
+    //             },
+    //             error: function (xhr, status, error) {
+    //                 console.error("Error fetching data:", error);
+    //             }
+    //         });
+    //     },
+    //     columns: [
+    //         { data: "orderDate" },
+    //         { data: "condition" },
+    //         { data: "quantity" },
+    //         { data: "purchasePrice" }
+    //     ],
+    //     ordering: true,  // Enable column ordering
+    //     searching: false  // Disable searching if not needed
+    // });
+
+    $('#cardSelect, #timePeriodSelect').change(function() {
+        var selectedCard = $('#cardSelect').val();
+        var selectedPeriod = $('#timePeriodSelect').val();
+
+        fetchData(selectedCard, selectedPeriod).done(function(json) {
+            dataTable.clear().rows.add(json).draw();
+            updateChart(json);
+            updateOverview(json);
+        });
+    });
+    </script>
+</body>
+</html>

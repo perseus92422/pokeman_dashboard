@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pokémon Card Analytics</title>
+    <link rel="icon" href="https://upload.wikimedia.org/wikipedia/commons/9/98/International_Pokémon_logo.svg"
+        type="image/svg+xml">
+
+    <!-- DataTable CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.21/css/jquery.dataTables.min.css">
+
+    <!-- Select2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+    <!-- jQuery and DataTables JavaScript -->
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdn.datatables.net/1.10.21/js/jquery.dataTables.min.js"></script>
+
+    <!-- Select2 JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+    <!-- Chart.js for the chart -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.8.0/Chart.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-zoom/0.6.6/chartjs-plugin-zoom.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(to right, #6EC6FF, #FFCB05);
+            margin: 0;
+            padding: 0;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            background-color: #FFCB05;
+        }
+
+        .header img {
+            width: 200px;
+        }
+
+        h1,
+        h2 {
+            text-align: center;
+            color: #003A70;
+        }
+
+        label {
+            font-size: 14px;
+            color: #003A70;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+
+        select,
+        .dataTables_wrapper {
+            width: 100%;
+        }
+
+        #items-table {
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        table.dataTable thead th {
+            background-color: #003A70;
+            color: white;
+            font-size: 14px;
+        }
+
+        table.dataTable tbody td {
+            font-size: 12px;
+            color: #003A70;
+        }
+
+        #chart-container {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        canvas {
+            max-width: 100%;
+        }
+
+        #cardSelect {
+            margin-bottom: 20px;
+            font-size: 14px;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #003A70;
+        }
+
+        .select2-container .select2-selection--single {
+            height: 38px;
+            font-size: 14px;
+            border: 1px solid #003A70;
+        }
+
+        .select2-selection__rendered {
+            padding-left: 8px;
+            line-height: 36px;
+        }
+
+        .select2-selection__arrow {
+            height: 36px;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            body {
+                font-size: 12px;
+            }
+
+            h1,
+            h2 {
+                font-size: 16px;
+            }
+
+            .container {
+                padding: 10px;
+            }
+
+            #cardSelect {
+                font-size: 12px;
+            }
+
+            .select2-container .select2-selection--single {
+                height: 34px;
+                font-size: 12px;
+            }
+        }
+
+        .overview {
+            margin-top: 20px;
+            margin-bottom: 20px;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            color: #003A70;
+            font-family: 'Arial', sans-serif;
+        }
+
+        .overview h2 {
+            color: #003A70;
+            font-size: 18px;
+            border-bottom: 2px solid #FFCB05;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+
+        .overview p {
+            font-size: 14px;
+            margin: 5px 0;
+            line-height: 1.6;
+        }
+
+        .overview p span {
+            font-weight: bold;
+            color: #FFCB05;
+        }
+
+        .overview .stat-block {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .overview .stat-block:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+
+<body>
+    <header class="header">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/9/98/International_Pokémon_logo.svg"
+            alt="Pokémon Logo">
+    </header>
+
+    <div class="container">
+        <h1>Pokémon Card Analytics Dashboard</h1>
+
+        <!-- Select box for cards (now with Select2 functionality) -->
+        <!-- DataTable for showing the items -->
+        <table id="items-table" class="display">
+            <thead>
+                <tr>
+                    <th width="20%" rowspan="2">Title</th>
+                    <th rowspan="2">Market Price</th>
+                    <th rowspan="2">Total Qty</th>
+                    <th rowspan="2">Total Sold</th>
+                    <th rowspan="2">Avg Qty</th>
+                    <th rowspan="2">Avg Sold</th>
+                    <th colspan="10">Trending</th>
+                </tr>
+                <tr>
+                    <th>1 Day</th>
+                    <th>1 Day Price</th>
+                    <th>7 Days</th>
+                    <th>7 Days Price</th>
+                    <th>30 Days</th>
+                    <th>30 Days Price</th>
+                    <th>60 Days</th>
+                    <th>60 Days Price</th>
+                    <th>90 Days</th>
+                    <th>90 Days Price</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <script>
+
+
+
+
+        function fetchData(cardName, period) {
+            var url = "http://127.0.0.1:5000/api/products";
+
+            return $.ajax({
+                url: url,
+                dataType: "json"
+            });
+        }
+
+
+
+
+        var dataTable = $('#items-table').DataTable({
+            ajax: {
+                url: "http://127.0.0.1:5000/api/products",
+                dataSrc: ""
+            },
+            columns: [
+                {
+                    data: "title",
+                    "render": function (data, type, row, meta) {
+                        return `<a href='https://www.tcgplayer.com/product/${row.productId}'>${data}</a>`
+                    }
+                },
+                {
+                    data: "price",
+                    "render": function (data, type, row, meta) {
+                        return `<a href='http://127.0.0.1:5000/details?product=${row.productId}&skuId=${row.skuId}'>${data}</a>`
+                    }
+                },
+                {
+                    data: "totalQty",
+                    "render": function (data, type, row, meta) {
+                        return `<a href='http://127.0.0.1:5000/details?product=${row.productId}&skuId=${row.skuId}'>${data}</a>`
+                    }
+                },
+                {
+                    data: "totalTx",
+                    "render": function (data, type, row, meta) {
+                        return `<a href='http://127.0.0.1:5000/details?product=${row.productId}&skuId=${row.skuId}'>${data}</a>`
+                    }
+                },
+                {
+                    data: "avgQty",
+                    "render": function (data, type, row, meta) {
+                        return `<a href='http://127.0.0.1:5000/details?product=${row.productId}&skuId=${row.skuId}'>${data}</a>`
+                    }
+                },
+                {
+                    data: "avgTx",
+                    "render": function (data, type, row, meta) {
+                        return `<a href='http://127.0.0.1:5000/details?product=${row.productId}&skuId=${row.skuId}'>${data}</a>`
+                    }
+                },
+                {
+                    data: "1day",
+                    "render": function (data, type, row, meta) {
+                        const drop_per = Math.round(data*100)/100;
+                        const price_drop = Math.round(row.price * (parseFloat(data)/100)*10000)/10000
+                        return `<a href='http://127.0.0.1:5000/details?product=${row.productId}&skuId=${row.skuId}'>${drop_per}%</a>`
+                    }
+                },
+                {
+                    data: "1day",
+                    "render": function (data, type, row, meta) {
+                        const drop_per = Math.round(data*100)/100;
+                        const price_drop = Math.round(row.price * (parseFloat(data)/100)*10000)/10000
+                        return `<a href='http://127.0.0.1:5000/details?product=${row.productId}&skuId=${row.skuId}'>${price_drop}</a>`
+                    }
+                },
+                {
+                    data: "7day",
+                    "render": function (data, type, row, meta) {
+                        const price_drop = Math.round(row.price * (parseFloat(data)/100)*10000)/10000
+                        return `<a href='http://127.0.0.1:5000/details?product=${row.productId}&skuId=${row.skuId}'>${data}%</a>`
+                    }
+                },
+                {
+                    data: "7day",
+                    "render": function (data, type, row, meta) {
+                        const price_drop = Math.round(row.price * (parseFloat(data)/100)*10000)/10000
+                        return `<a href='http://127.0.0.1:5000/details?product=${row.productId}&skuId=${row.skuId}'>${price_drop}</a>`
+                    }
+                },
+                {
+                    data: "30day",
+                    "render": function (data, type, row, meta) {
+                        const price_drop = Math.round(row.price * (parseFloat(data)/100)*10000)/10000
+                        return `<a href='http://127.0.0.1:5000/details?product=${row.productId}&skuId=${row.skuId}'>${data}%</a>`
+                    }
+                },
+                {
+                    data: "30day",
+                    "render": function (data, type, row, meta) {
+                        const price_drop = Math.round(row.price * (parseFloat(data)/100)*10000)/10000
+                        return `<a href='http://127.0.0.1:5000/details?product=${row.productId}&skuId=${row.skuId}'>${price_drop}</a>`
+                    }
+                },
+                {
+                    data: "60day",
+                    "render": function (data, type, row, meta) {
+                        const price_drop = Math.round(row.price * (parseFloat(data)/100)*10000)/10000
+                        return `<a href='http://127.0.0.1:5000/details?product=${row.productId}&skuId=${row.skuId}'>${data}%</a>`
+                    }
+                },
+                {
+                    data: "60day",
+                    "render": function (data, type, row, meta) {
+                        const price_drop = Math.round(row.price * (parseFloat(data)/100)*10000)/10000
+                        return `<a href='http://127.0.0.1:5000/details?product=${row.productId}&skuId=${row.skuId}'>${price_drop}</a>`
+                    }
+                },
+                {
+                    data: "90day",
+                    "render": function (data, type, row, meta) {
+                        const price_drop = Math.round(row.price * (parseFloat(data)/100)*10000)/10000
+                        return `<a href='http://127.0.0.1:5000/details?product=${row.productId}&skuId=${row.skuId}'>${data}%</a>`
+                    }
+                },
+                {
+                    data: "90day",
+                    "render": function (data, type, row, meta) {
+                        const price_drop = Math.round(row.price * (parseFloat(data)/100)*10000)/10000
+                        return `<a href='http://127.0.0.1:5000/details?product=${row.productId}&skuId=${row.skuId}'>${price_drop}</a>`
+                    }
+                },
+                // { data: "orderDate" }
+            ],
+            order: [[6, 'asc']],
+            initComplete: function (settings, json) {
+                // updateChart(json);
+                // updateOverview(json);
+            }
+        });
+
+        // $('#cardSelect, #timePeriodSelect').change(function() {
+        //     var selectedCard = $('#cardSelect').val();
+        //     var selectedPeriod = $('#timePeriodSelect').val();
+
+        //     fetchData(selectedCard, selectedPeriod).done(function(json) {
+        //         dataTable.clear().rows.add(json).draw();
+        //         updateChart(json);
+        //         updateOverview(json);
+        //     });
+        // });
+    </script>
+</body>
+
+</html>
